@@ -79,7 +79,6 @@ Matrix2D Matrix2D::operator*(const Matrix2D& m2) {
 	int j, k;
 	if (ColCount == m2.RowCount) {
 		m = Matrix2D(RowCount, m2.ColCount);
-#pragma omp parallel for private(k, j, sum)
 		for (int i = 1; i <= RowCount; i++) for (k = 1; k <= m2.ColCount; k++) {
 			sum = 0;
 			for (j = 1; j <= ColCount; j++) sum += (*this)(i, j)*m2(j, k);

@@ -4,6 +4,10 @@ using namespace std;
 
 bool StopTraining = false;
 
+random_device rd;
+mt19937 eng(rd());
+uniform_int_distribution<> dist(1, 50000);
+
 
 /////////////////////////// Функции класса слоев ///////////////////////////////
 
@@ -581,7 +585,7 @@ int Net::RPropTrain(TrainParams Params, vector<double> &Error) {
 		Norma = sqrt((Grad.Transpose()*Grad)(1, 1));
 		if (Norma < Params.MinGrad) return l;
 #ifdef DEBUG_PRINT
-		WeightsBiases.Transpose().ShowElements();
+		WeightsBiases__.Transpose().ShowElements();
 		cout << endl;
 #endif
 		for (int i = 1; i <= Grad.GetRowCount(); i++) {
@@ -598,12 +602,64 @@ int Net::RPropTrain(TrainParams Params, vector<double> &Error) {
 		WBNetToLayers();
 #ifdef DEBUG_PRINT
 		cout << "After correction:" << endl;
-		WeightsBiases.Transpose().ShowElements();
+		WeightsBiases__.Transpose().ShowElements();
 #endif
 		Error.push_back(CalculateError());
 #ifdef DEBUG_PRINT
 		cout << Error[l] << endl << endl;
 #endif
+		if (Error.back() <= Params.Error) return l;
+		if (StopTraining) return l;
+	}
+	return Params.NumEpochs - 1;
+}
+////////////////////////////////////////////////////////////////////////////////
+
+
+// Алгоритм RMSPROP
+////////////////////////////////////////////////////////////////////////////////
+int Net::RMSPropTrain(TrainParams Params, vector<double> &Error) {
+	Matrix2D Grad, RMS, PrevRMS, Delta, G, PrevG;
+	double Gamma = 0.95, Eps = 1e-2, Norma;
+	Grad = SumGradient();
+	RMS = Matrix2D(Grad.GetRowCount(), 1);
+	G = Matrix2D(Grad.GetRowCount(), 1);
+	Delta = Matrix2D(Grad.GetRowCount(), 1);
+	for (int l = 0; l < Params.NumEpochs; l++) {
+		PrevRMS = RMS;
+		PrevG = G;
+		Grad = SumGradient();
+		G = Gamma*PrevG + (1 - Gamma)*Grad;
+		RMS = Gamma*PrevRMS + (1 - Gamma)*Grad*Grad;
+#ifdef DEBUG_PRINT
+		cout << "Grad before correction:" << endl;
+		Grad.Transpose().ShowElements();
+		cout << endl;
+#endif
+		Norma = sqrt((Grad.Transpose()*Grad)(1, 1));
+		if (Norma < Params.MinGrad) return l;
+#ifdef DEBUG_PRINT
+		WeightsBiases__.Transpose().ShowElements();
+		cout << endl;
+#endif
+		for (int i = 1; i <= Grad.GetRowCount(); i++) {
+			Delta(i, 1) = Params.Rate * Grad(i, 1) / sqrt(RMS(i, 1) - G(i, 1)*G(i, 1) + Eps);
+			WeightsBiases__(i, 1) += -Delta(i, 1);
+		}
+#ifdef DEBUG_PRINT
+		cout << "Delta:" << endl;
+		Delta.Transpose().ShowElements();
+		cout << endl;
+#endif
+		WBNetToLayers();
+#ifdef DEBUG_PRINT
+		cout << "After correction:" << endl;
+		WeightsBiases__.Transpose().ShowElements();
+#endif
+		Error.emplace_back(CalculateError());
+//#ifdef DEBUG_PRINT
+		if (l % 100) cout << l << ":\t\t" << Error[l] << endl << endl;
+//#endif
 		if (Error.back() <= Params.Error) return l;
 		if (StopTraining) return l;
 	}
@@ -811,7 +867,7 @@ void Net::RandomWB() {
 	for (int i = GetNumWeights() + 1; i <= GetNumWeights() + GetNumBiases(); i++)
 		WeightsBiases__(i, 1) = TmpB(i - GetNumWeights(), 1);
 #ifdef DEBUG_PRINT
-	WeightsBiases.Transpose().ShowElements();
+	WeightsBiases__.Transpose().ShowElements();
 	cout << endl;
 #endif
 }
@@ -941,7 +997,7 @@ int sign(double x) {
 ////////////////////////////////////////////////////////////////////////////////
 double SignedRandomVal(double Val) {
 	double res = 0;
-	res = double(rand() % 1001) / double(1000) - double(rand() % (1001)) / double(1000);
+	res = double(dist(eng) % 1001) / double(1000) - double(dist(eng) % (1001)) / double(1000);
 	res *= Val;
 	return res;
 }
@@ -951,7 +1007,7 @@ double SignedRandomVal(double Val) {
 ////////////////////////////////////////////////////////////////////////////////
 double RandomVal(double Val) {
 	double res = 0;
-	res = double(rand() % (1001)) / double(1000);
+	res = double(dist(eng) % (1001)) / double(1000);
 	res *= Val;
 	return res;
 }

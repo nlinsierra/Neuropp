@@ -8,6 +8,9 @@
 #include <time.h>
 #include <functional>
 #include <map>
+#include <random>
+
+//#define DEBUG_PRINT
 
 using namespace std;
 
@@ -196,6 +199,7 @@ public:
 	int						FastGradTrainOffLine(TrainParams Params, vector<double> &Error);
 	int						FRConjugateGradTrain(TrainParams Params, vector<double> &Error);
 	int						RPropTrain(TrainParams Params, vector<double> &Error);
+	int						RMSPropTrain(TrainParams Params, vector<double>& Error);
 	int						LMTrain(TrainParams Params, vector<double> &Error);
 	int						BayesianReg(TrainParams Params, vector<double> &Error);
 	int						GeneticTraining(TrainParams Params, vector<double> &Error);

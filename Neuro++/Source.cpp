@@ -5,7 +5,7 @@ using namespace std;
 int InputCount = 1;
 int NumLayers = 2;
 int AFun[] = { TANH, LINE };
-int NumNeurons[] = { 1000, 1 };
+int NumNeurons[] = { 2, 1 };
 
 Matrix2D TrainSet;
 
@@ -43,12 +43,13 @@ int main() {
 	srand(time(nullptr));
 	Net net(InputCount, NumLayers, AFun, NumNeurons);
 	
-	net.TrainSet(generate_trainset(1, 1, 10));
+	net.TrainSet(generate_trainset(1, 1, 100));
 	Params.Error = 0.001;
-	Params.MinGrad = 0.00001;
-	Params.NumEpochs = 500;
+	Params.MinGrad = 0.00000001;
+	Params.NumEpochs = 100000;
+	Params.Rate = 1e-3;
 	vector<double> error;
-	net.RPropTrain(Params, error);
+	net.RMSPropTrain(Params, error);
 
 	Matrix2D SimSet = generate_simset(1, 10);
 	for (int i = 0; i < 10; ++i) {
