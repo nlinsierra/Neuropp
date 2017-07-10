@@ -1,4 +1,5 @@
 #include "NNet.h"
+#include <chrono>
 
 using namespace std;
 
@@ -46,10 +47,15 @@ int main() {
 	net.TrainSet(generate_trainset(1, 1, 100));
 	Params.Error = 0.001;
 	Params.MinGrad = 0.00000001;
-	Params.NumEpochs = 100000;
+	Params.NumEpochs = 20000;
 	Params.Rate = 1e-3;
 	vector<double> error;
-	net.RMSPropTrain(Params, error);
+	
+	auto start_time = chrono::steady_clock::now();
+	auto e = net.RMSPropTrain(Params, error);
+	auto end_time = chrono::steady_clock::now();
+	auto elapsed_ns = chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
+	cout << "Nanoseconds per epoch: " << elapsed_ns.count() / e << " ns" << endl;
 
 	Matrix2D SimSet = generate_simset(1, 10);
 	for (int i = 0; i < 10; ++i) {

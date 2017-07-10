@@ -6,7 +6,11 @@ using namespace std;
 // Оператор обращения к элементу матрицы
 ////////////////////////////////////////////////////////////////////////////////
 double& Matrix2D::operator()(const int i, const int j) {
+#ifdef POINTER_MATRIX
+	return MatrixElements[(i - 1)*ColCount + j - 1];
+#else
 	return MatrixElements[i - 1][j - 1];
+#endif
 };
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -14,7 +18,11 @@ double& Matrix2D::operator()(const int i, const int j) {
 // Оператор обращения к элементу матрицы
 ////////////////////////////////////////////////////////////////////////////////
 double Matrix2D::operator()(const int i, const int j) const {
+#ifdef POINTER_MATRIX
+	return MatrixElements[(i - 1)*ColCount + j - 1];
+#else
 	return MatrixElements[i - 1][j - 1];
+#endif
 };
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -79,6 +87,7 @@ Matrix2D Matrix2D::operator*(const Matrix2D& m2) {
 	int j, k;
 	if (ColCount == m2.RowCount) {
 		m = Matrix2D(RowCount, m2.ColCount);
+#pragma omp parallel for private(k, j, sum)
 		for (int i = 1; i <= RowCount; i++) for (k = 1; k <= m2.ColCount; k++) {
 			sum = 0;
 			for (j = 1; j <= ColCount; j++) sum += (*this)(i, j)*m2(j, k);
@@ -305,9 +314,17 @@ Matrix2D CalculateOnes(int SizeNum) {
 
 
 
-
 // Перевод одномерного массива чисел в матрицу
 ////////////////////////////////////////////////////////////////////////////////
+#ifdef POINTER_MATRIX
+Matrix2D PointerToMatrix2D(double* p, int NumRows, int NumCols) {
+	Matrix2D res(NumRows, NumCols);
+	int count = 0;
+	for (int i = 1; i <= NumRows; i++) for (int j = 1; j <= NumCols; j++)
+		res(i, j) = p[count++];
+	return move(res);
+}
+#else
 Matrix2D VectorToMatrix2D(vector<double> p, int NumRows, int NumCols) {
 	Matrix2D res(NumRows, NumCols);
 	int count = 0;
@@ -315,5 +332,5 @@ Matrix2D VectorToMatrix2D(vector<double> p, int NumRows, int NumCols) {
 		res(i, j) = p[count++];
 	return move(res);
 }
+#endif
 ////////////////////////////////////////////////////////////////////////////////
-

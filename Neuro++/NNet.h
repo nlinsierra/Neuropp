@@ -166,8 +166,13 @@ private:
 
 	void					WBNetToLayers();
 	void					RandomWB();
+#ifdef POINTER_MATRIX
+	double*					GetWeights();
+	double*					GetBiases();
+#else
 	vector<double>			GetWeights();
 	vector<double>			GetBiases();
+#endif
 	int						GetNumWeights();
 	int						GetNumBiases();
 

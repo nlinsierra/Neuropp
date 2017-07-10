@@ -140,8 +140,16 @@ void Net::InitLayers(int NumInputs, int NumLayers, int AFun[], int NumLN[]) {
 	}
 	// Заполнение единого вектора весов и смещений
 	WeightsBiases__ = Matrix2D(GetNumWeights() + GetNumBiases(), 1);
+#ifdef POINTER_MATRIX
+	double *pw = GetWeights(), *pb = GetBiases();
+	TmpW = PointerToMatrix2D(pw, GetNumWeights(), 1);
+	TmpB = PointerToMatrix2D(pb, GetNumBiases(), 1);
+	delete[] pw;
+	delete[] pb;
+#else
 	TmpW = VectorToMatrix2D(GetWeights(), GetNumWeights(), 1);
 	TmpB = VectorToMatrix2D(GetBiases(), GetNumBiases(), 1);
+#endif
 	for (int i = 1; i <= GetNumWeights(); i++) WeightsBiases__(i, 1) = TmpW(i, 1);
 	for (int i = GetNumWeights() + 1; i <= GetNumWeights() + GetNumBiases(); i++)
 		WeightsBiases__(i, 1) = TmpB(i - GetNumWeights(), 1);
@@ -169,7 +177,11 @@ void Net::WBNetToLayers() {
 		for (int j = WCount; j < WCount + w.GetRowCount(); j++)
 			w(count++, 1) = Wt(j, 1);
 		WCount += w.GetRowCount();
+#ifdef POINTER_MATRIX
+		Layers__[i].Weights(PointerToMatrix2D(w.Matrix2DToPointer(), Layers__[i].NumNeurons(), Layers__[i - 1].NumNeurons()));
+#else
 		Layers__[i].Weights(VectorToMatrix2D(w.Matrix2DToVector(), Layers__[i].NumNeurons(), Layers__[i - 1].NumNeurons()));
+#endif
 		b = Matrix2D(Layers__[i].NumNeurons(), 1);
 		count = 1;
 		for (int j = BCount; j < BCount + b.GetRowCount(); j++)
@@ -204,6 +216,17 @@ int Net::GetNumBiases() {
 
 // Возврат вектора весовых коэффициентов
 ////////////////////////////////////////////////////////////////////////////////
+#ifdef POINTER_MATRIX
+double* Net::GetWeights() {
+	double* w = new double[GetNumWeights()];
+	int counter = 0;
+	for (int i = 1; i <= NumLayers(); i++)
+		for (int j = 1; j <= Layers__[i].NumNeurons(); j++)
+			for (int k = 1; k <= Layers__[i - 1].NumNeurons(); k++)
+				w[counter++] = (Layers__[i].Weights(j, k));
+	return w;
+}
+#else
 vector<double> Net::GetWeights() {
 	vector<double> w;
 	for (int i = 1; i <= NumLayers(); i++)
@@ -212,11 +235,22 @@ vector<double> Net::GetWeights() {
 				w.push_back(Layers__[i].Weights(j, k));
 	return w;
 }
+#endif
 ////////////////////////////////////////////////////////////////////////////////
 
 
 // Возврат вектора смещений нейронов
 ////////////////////////////////////////////////////////////////////////////////
+#ifdef POINTER_MATRIX
+double* Net::GetBiases() {
+	double* b = new double[GetNumBiases()];
+	int counter = 0;
+	for (int i = 1; i <= NumLayers(); i++)
+		for (int j = 0; j < Layers__[i].NumNeurons(); j++)
+			b[counter++] = (Layers__[i].Neurons(j).Bias());
+	return b;
+}
+#else
 vector<double> Net::GetBiases() {
 	vector<double> b;
 	for (int i = 1; i <= NumLayers(); i++)
@@ -224,6 +258,7 @@ vector<double> Net::GetBiases() {
 			b.push_back(Layers__[i].Neurons(j).Bias());
 	return b;
 }
+#endif
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -626,8 +661,8 @@ int Net::RMSPropTrain(TrainParams Params, vector<double> &Error) {
 	G = Matrix2D(Grad.GetRowCount(), 1);
 	Delta = Matrix2D(Grad.GetRowCount(), 1);
 	for (int l = 0; l < Params.NumEpochs; l++) {
-		PrevRMS = RMS;
-		PrevG = G;
+		PrevRMS = move(RMS);
+		PrevG = move(G);
 		Grad = SumGradient();
 		G = Gamma*PrevG + (1 - Gamma)*Grad;
 		RMS = Gamma*PrevRMS + (1 - Gamma)*Grad*Grad;
@@ -657,9 +692,9 @@ int Net::RMSPropTrain(TrainParams Params, vector<double> &Error) {
 		WeightsBiases__.Transpose().ShowElements();
 #endif
 		Error.emplace_back(CalculateError());
-//#ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT
 		if (l % 100) cout << l << ":\t\t" << Error[l] << endl << endl;
-//#endif
+#endif
 		if (Error.back() <= Params.Error) return l;
 		if (StopTraining) return l;
 	}
@@ -860,8 +895,16 @@ void Net::RandomWB() {
 		Layers__[i].Biases(b);
 		Layers__[i].Weights(w);
 	}
+#ifdef POINTER_MATRIX
+	double *pw = GetWeights(), *pb = GetBiases();
+	TmpW = PointerToMatrix2D(pw, GetNumWeights(), 1);
+	TmpB = PointerToMatrix2D(pb, GetNumBiases(), 1);
+	delete[] pw;
+	delete[] pb;
+#else
 	TmpW = VectorToMatrix2D(GetWeights(), GetNumWeights(), 1);
 	TmpB = VectorToMatrix2D(GetBiases(), GetNumBiases(), 1);
+#endif
 	for (int i = 1; i <= GetNumWeights(); i++)
 		WeightsBiases__(i, 1) = TmpW(i, 1);
 	for (int i = GetNumWeights() + 1; i <= GetNumWeights() + GetNumBiases(); i++)
